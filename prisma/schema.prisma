@@ -21,6 +21,21 @@ model User {
   trips     Trip[]
   ratings   Rating[]
 
+  saved     SavedTrips[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SavedTrips {
+  uuid      String   @id
+  
+  tripId    String
+  trip      Trip     @relation(fields: [tripId], references: [uuid], onDelete: Cascade)
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [uuid], onDelete: Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -29,11 +44,50 @@ model Trip {
   uuid      String   @id
   
   name      String
-  
+  startDate DateTime
+  endDate   DateTime
+  comment   String?
+
+  location  TripLocation?
+
   userId    String
   user      User     @relation(fields: [userId], references: [uuid])
 
-  ratings  Rating[]
+  ratings   Rating[]
+  saved     SavedTrips[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TripLocation {
+  uuid      String   @id
+  
+  name      String
+  latitude  Float
+  longitude Float
+
+  tripId    String   @unique
+  trip      Trip     @relation(fields: [tripId], references: [uuid], onDelete: Cascade)
+
+  condition LocationCondition?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model LocationCondition {
+  uuid        String   @id
+
+  locationId  String  @unique
+  location    TripLocation @relation(fields: [locationId], references: [uuid], onDelete: Cascade)
+
+  avgTempC    Float
+  avgTempF    Float
+  avgHumidity Float
+
+  comment     String?
+  icon        String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -46,10 +100,10 @@ model Rating {
   comment   String?
 
   tripId    String
-  trip      Trip     @relation(fields: [tripId], references: [uuid])
+  trip      Trip     @relation(fields: [tripId], references: [uuid], onDelete: Cascade)
 
   userId    String
-  user      User     @relation(fields: [userId], references: [uuid])
+  user      User     @relation(fields: [userId], references: [uuid], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

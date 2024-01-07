@@ -1,7 +1,7 @@
 import { Injectable, Res } from '@nestjs/common';
 
 import { UUID, Error, UserEntity } from 'src/Types/general';
-import { getClient, generateUUID } from 'src/Functions/general';
+import { getClient, generateUUID, hashPassword, comparePassword } from 'src/Functions/general';
 
 const prisma = getClient();
 
@@ -27,7 +27,6 @@ export class UserService {
     return new UserEntity(user);
   }
 
-
   async createUser(user: UserEntity): Promise<UserEntity | Error> {
     const { email, password, name } = user;
 
@@ -39,11 +38,45 @@ export class UserService {
       data: {
         uuid: await generateUUID(),
         email: email,
-        password: password,
+        password: await hashPassword(password),
         name: name
     }});
 
     await prisma.$disconnect();
-    return new UserEntity(newUser);
+    return new UserEntity({...newUser, password: undefined});
   }
+
+  async loginUser(user: UserEntity): Promise<UserEntity | Error> {
+    
+    const { email, password } = user;
+
+    if (email === undefined || password === undefined) {
+      return {error: 'Missing required fields.'};
+    }
+
+    const dbUser = await prisma.user.findFirst({
+      where: {
+        email: email
+      },
+      select: {
+        uuid: true,
+        email: true,
+        password: true,
+        name: true
+      }
+    });
+
+    if (dbUser === null) {
+      return {error: 'User not found.'};
+    }
+
+    const match = await comparePassword(password, dbUser.password);
+
+    if (match === false) {
+      return {error: 'Incorrect password.'};
+    }
+
+    await prisma.$disconnect();
+    return new UserEntity({...dbUser, password: undefined});
+  };
 }
